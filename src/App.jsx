@@ -1,5 +1,18 @@
 import './App.css'
 import * as React from 'react';
+import PropTypes from "prop-types";
+
+const useStorageState = (key, initialState) => {
+  const [value, setValue] = React.useState(
+      localStorage.getItem(key) || initialState
+  );
+
+  React.useEffect(() => {
+    localStorage.setItem(key, value);
+  }, [value, key]);
+
+  return [value, setValue];
+};
 
 const App = () => {
   const stories = [{
@@ -20,9 +33,9 @@ const App = () => {
     },
   ];
 
-  const [searchTerm, setSearchTerm] = React.useState('');
+  const [searchTerm, setSearchTerm] = useStorageState('search', 'React');
 
-  const handleChange = (event) => {
+  const handleSearch = (event) => {
     setSearchTerm(event.target.value);
   };
 
@@ -32,18 +45,19 @@ const App = () => {
 
   return (
       <div>
-        <Search onSearch={handleSearch}/>
+        <Search search={searchTerm} onSearch={handleSearch}/>
         <List list={searchedStories}/>
       </div>
   );
 }
 
-const Search = (props) => {
+const Search = ({search, onSearch}) => {
+
   return (
       <div>
         <label htmlFor="search"> Search: </label>
         {/* eslint-disable-next-line react/prop-types */}
-        <input id="search" type="text" onChange={props.onSearch}/>
+        <input id="search" type="text" value={search} onChange={onSearch}/>
         {/*<p>Searching for: <strong>{searchTerm}</strong></p>*/}
       </div>
   );
@@ -53,21 +67,21 @@ const Search = (props) => {
 //   console.log(event.target.value);
 // }
 
-const List = (props) => (
+const List = ({list}) => (
     <ul>
       {/* eslint-disable-next-line react/prop-types */}
-      {props.list.map((item) => (
+      {list.map((item) => (
           <Item key={item.objectID} item={item}/>
       ))}
     </ul>
 );
 
-const Item = (props) => (
+const Item = ({item}) => (
     <li>
-      <span>{props.item.title}</span>
-      <span> {props.item.url}</span>
-      <span> {props.item.author}</span>
-      <span> {props.item.num_comments}</span>
+      <span> {item.title}</span>
+      <span> {item.url}</span>
+      <span> {item.author}</span>
+      <span> {item.num_comments}</span>
     </li>
 );
 //
@@ -99,4 +113,16 @@ const Item = (props) => (
 //   );
 // }
 
+Search.propTypes = {
+  search: PropTypes.string,
+  onSearch: PropTypes.func
+}
+
+Item.propTypes = {
+  item: PropTypes.array
+}
+
+List.propTypes = {
+  list: PropTypes.array
+}
 export default App

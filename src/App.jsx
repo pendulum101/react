@@ -1,6 +1,7 @@
 import './App.css'
 import * as React from 'react';
 import PropTypes from "prop-types";
+import App_Button from "./App_Button.jsx";
 
 const useStorageState = (key, initialState) => {
   const [value, setValue] = React.useState(
@@ -45,20 +46,24 @@ const App = () => {
 
   return (
       <div>
-        <Search search={searchTerm} onSearch={handleSearch}/>
+        <InputWithLabel id="search"
+                        label="Search"
+                        type="text"
+                        search={searchTerm}
+                        onInputChange={handleSearch}/>
         <List list={searchedStories}/>
+        <App_Button></App_Button>
       </div>
   );
 }
 
-const Search = ({search, onSearch}) => {
+const InputWithLabel = ({id, label, search, onInputChange, type}) => {
 
   return (
       <div>
-        <label htmlFor="search"> Search: </label>
-        {/* eslint-disable-next-line react/prop-types */}
-        <input id="search" type="text" value={search} onChange={onSearch}/>
-        {/*<p>Searching for: <strong>{searchTerm}</strong></p>*/}
+        <label htmlFor={id}>{label}</label>
+        &nbsp;
+        <input id={id} type={type} value={search} onChange={onInputChange}/>
       </div>
   );
 }
@@ -113,13 +118,16 @@ const Item = ({item}) => (
 //   );
 // }
 
-Search.propTypes = {
+InputWithLabel.propTypes = {
+  id: PropTypes.string,
+  type: PropTypes.string,
+  label: PropTypes.string,
   search: PropTypes.string,
-  onSearch: PropTypes.func
+  onInputChange: PropTypes.func
 }
 
 Item.propTypes = {
-  item: PropTypes.array
+  item: PropTypes.object
 }
 
 List.propTypes = {

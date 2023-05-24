@@ -1,5 +1,5 @@
 import * as React from 'react';
-import PropTypes, {element} from 'prop-types';
+import PropTypes from 'prop-types';
 const App_Button = () => {
   const [isOpen, setOpen] = React.useState(false);
 
@@ -9,15 +9,15 @@ const App_Button = () => {
 
   return (
       <div>
-        <Button onClick={handleOpen}> Open</Button>
-        {isOpen && <div>Content</div>}
+        <Button onClick={handleOpen}> Remove</Button>
+        {/*{isOpen && <div>Content</div>}*/}
       </div>
   );
 };
 
-const Button = ({onClick, children}) => {
+const Button = ({onClick, id, children}) => {
   return (
-      <button type="button" onClick={onClick}>
+      <button id={id} type="button" onClick={onClick}>
         {children}
       </button>
   );
@@ -25,6 +25,7 @@ const Button = ({onClick, children}) => {
 
 Button.propTypes = {
   onClick: PropTypes.func,
-  children: PropTypes.string
+  children: PropTypes.string,
+  id: PropTypes.string
 }
 export default App_Button;

@@ -1,7 +1,44 @@
 import './App.css'
 import * as React from 'react';
 import PropTypes from "prop-types";
-import App_Button from "./App_Button.jsx";
+
+const getAsyncStories = () => new Promise(
+    (resolve) =>
+        setTimeout(() => resolve({data: {stories: initialStories}}),
+            1000
+        )
+);
+
+const initialStories = [{
+  title: "React",
+  url: "http://test.org",
+  author: "ME",
+  num_comments: 3,
+  lang: "EN",
+  objectID: 0
+},
+  {
+    title: "Vue",
+    url: "http://wiki.org",
+    author: "You",
+    num_comments: 10,
+    lang: "DE",
+    objectID: 1
+  }
+];
+
+const storiesReducer = (state, action) => {
+  switch (action.type) {
+    case 'SET_STORIES':
+      return action.payload;
+    case 'REMOVE_STORY':
+      return state.filter(
+          (story) => action.payload.objectID !== story.objectID
+      );
+    default:
+      throw new Error();
+  }
+};
 
 const useStorageState = (key, initialState) => {
   const [value, setValue] = React.useState(
@@ -16,121 +53,123 @@ const useStorageState = (key, initialState) => {
 };
 
 const App = () => {
-  const stories = [{
-    title: "React",
-    url: "http://test.org",
-    author: "ME",
-    num_comments: 3,
-    lang: "EN",
-    objectID: 0
-  },
-    {
-      title: "Vue",
-      url: "http://wikid.org",
-      author: "You",
-      num_comments: 10,
-      lang: "DE",
-      objectID: 1
-    },
-  ];
+  const [searchTerm, setSearchTerm] = useStorageState('search', '');
+  const [stories, dispatchStories] = React.useReducer(storiesReducer, []);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isError, setIsError] = React.useState(false);
 
-  const [searchTerm, setSearchTerm] = useStorageState('search', 'React');
+  React.useEffect(() => {
+    setIsLoading(true);
+
+    getAsyncStories().then((result) => {
+      dispatchStories({
+        type: 'SET_STORIES',
+        payload: result.data.stories,
+      });
+      setIsLoading(false);
+    }).catch(() => setIsError(true));
+  }, []);
+
+  const handleRemoveStory = (item) => {
+    dispatchStories({
+      type: 'REMOVE_STORY',
+      payload: item,
+    });
+  }
 
   const handleSearch = (event) => {
     setSearchTerm(event.target.value);
   };
 
-  const searchedStories = stories.filter(function (story) {
-    return story.title.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  const searchedStories = stories.filter((story) =>
+      story.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-      <div>
-        <InputWithLabel id="search"
-                        label="Search"
-                        type="text"
-                        search={searchTerm}
-                        onInputChange={handleSearch}/>
-        <List list={searchedStories}/>
-        <App_Button></App_Button>
-      </div>
+      <>
+        <div><InputWithLabel id="search"
+                             type="text"
+                             search={searchTerm}
+                             isFocused={false}
+                             onInputChange={handleSearch}>
+          Search:
+        </InputWithLabel>
+        </div>
+
+        <div>
+          {isError && <p>Something went wrong</p>}
+
+          {isLoading ?
+              (<p>Loading...</p>
+              ) : (
+
+                  <List list={searchedStories}
+                        onRemoveItem={handleRemoveStory}/>
+              )}
+        </div>
+      </>
   );
 }
 
-const InputWithLabel = ({id, label, search, onInputChange, type}) => {
+const InputWithLabel = ({
+  id,
+  isFocused,
+  search,
+  onInputChange,
+  type,
+  children
+}) => {
 
   return (
       <div>
-        <label htmlFor={id}>{label}</label>
+        <label htmlFor={id}>{children}</label>
         &nbsp;
-        <input id={id} type={type} value={search} onChange={onInputChange}/>
+        <input autoFocus={isFocused} id={id} type={type} value={search}
+               onChange={onInputChange}/>
       </div>
   );
 }
 
-// const handleSearch = (event) => {
-//   console.log(event.target.value);
-// }
-
-const List = ({list}) => (
+const List = ({list, onRemoveItem}) => (
     <ul>
-      {/* eslint-disable-next-line react/prop-types */}
       {list.map((item) => (
-          <Item key={item.objectID} item={item}/>
+          <Item key={item.objectID}
+                item={item}
+                onRemoveItem={onRemoveItem}/>
       ))}
     </ul>
 );
 
-const Item = ({item}) => (
+const Item = ({item, onRemoveItem}) => (
     <li>
       <span> {item.title}</span>
       <span> {item.url}</span>
       <span> {item.author}</span>
       <span> {item.num_comments}</span>
+      <span>
+        <button type="button" onClick={() => onRemoveItem(item)}>
+          Remove
+        </button>
+      </span>
     </li>
 );
-//
-// import React from 'react';
-//
-//
-// event Callback example
-// function App() {
-//   const [text, setText] = React.useState('');
-//
-//   // 1
-//   function handleTextChange(event) {
-//     setText(event.target.value); // 3
-//   }
-//
-//   return (
-//       <div>
-//         <MyInput inputValue={text} onInputChange={handleTextChange} />
-//
-//         {text}
-//       </div>
-//   );
-// }
-//
-// // 2
-// function MyInput({ inputValue, onInputChange }) {
-//   return (
-//       <input type="text" value={inputValue} onChange={onInputChange} />
-//   );
-// }
 
 InputWithLabel.propTypes = {
   id: PropTypes.string,
   type: PropTypes.string,
-  label: PropTypes.string,
   search: PropTypes.string,
-  onInputChange: PropTypes.func
+  onInputChange: PropTypes.func,
+  children: PropTypes.string,
+  isFocused: PropTypes.bool
 }
 
 Item.propTypes = {
-  item: PropTypes.object
+  item: PropTypes.object,
+  onRemoveItem: PropTypes.func
 }
 
 List.propTypes = {
-  list: PropTypes.array
+  list: PropTypes.array,
+  onRemoveItem: PropTypes.func
 }
 export default App

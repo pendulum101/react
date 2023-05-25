@@ -51,18 +51,19 @@ const useStorageState = (key, initialState) => {
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useStorageState('search', '');
+  const [url, setUrl] = React.useState(`${API_ENDPOINT}${searchTerm}`);
   const [stories, dispatchStories] = React.useReducer(storiesReducer,
       {data: [], isLoading: false, isError: false}
   );
 
-  React.useEffect(() => {
+  const handleFetchStories = React.useCallback(() => {
     if (!searchTerm) {
       return;
     }
 
     dispatchStories({type: 'STORIES_FETCH_INIT'});
 
-    fetch(`${API_ENDPOINT}${searchTerm}`)
+    fetch(url)
     .then((response) => response.json())
     .then((result) => {
       dispatchStories({
@@ -70,7 +71,11 @@ const App = () => {
         payload: result.hits,
       });
     }).catch(() => dispatchStories({type: 'STORIES_FETCH_FAILURE'}));
-  }, [searchTerm]);
+  }, [url]);
+
+  React.useEffect(() => {
+    handleFetchStories();
+  }, [handleFetchStories]);
 
   const handleRemoveStory = (item) => {
     dispatchStories({
@@ -79,8 +84,11 @@ const App = () => {
     });
   }
 
-  const handleSearch = (event) => {
+  const handleSearchInput = (event) => {
     setSearchTerm(event.target.value);
+  };
+  const handleSearchSubmit = () => {
+    setUrl(`${API_ENDPOINT}${searchTerm}`);
   };
 
   return (
@@ -89,9 +97,14 @@ const App = () => {
                              type="text"
                              search={searchTerm}
                              isFocused={false}
-                             onInputChange={handleSearch}>
+                             onInputChange={handleSearchInput}>
           Search:
         </InputWithLabel>
+          <button type="button"
+                  onClick={handleSearchSubmit}
+                  disabled={!searchTerm}>
+            Go
+          </button>
         </div>
 
         <div>
@@ -112,7 +125,7 @@ const App = () => {
 const InputWithLabel = ({
   id,
   isFocused,
-  search,
+  searchTerm,
   onInputChange,
   type,
   children
@@ -122,8 +135,7 @@ const InputWithLabel = ({
       <div>
         <label htmlFor={id}>{children}</label>
         &nbsp;
-        <input autoFocus={isFocused} id={id} type={type} value={search}
-               onChange={onInputChange}/>
+        <input autoFocus={isFocused} id={id} type={type} value={searchTerm} onChange={onInputChange}/>
       </div>
   );
 }
@@ -155,7 +167,7 @@ const Item = ({item, onRemoveItem}) => (
 InputWithLabel.propTypes = {
   id: PropTypes.string,
   type: PropTypes.string,
-  search: PropTypes.string,
+  searchTerm: PropTypes.string,
   onInputChange: PropTypes.func,
   children: PropTypes.string,
   isFocused: PropTypes.bool

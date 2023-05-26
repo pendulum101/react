@@ -1,6 +1,7 @@
 import './App.css'
 import * as React from 'react';
 import PropTypes from "prop-types";
+import axios from 'axios';
 
 const API_ENDPOINT = 'https://hn.algolia.com/api/v1/search?query=';
 
@@ -50,27 +51,25 @@ const useStorageState = (key, initialState) => {
 };
 
 const App = () => {
-  const [searchTerm, setSearchTerm] = useStorageState('search', '');
-  const [url, setUrl] = React.useState(`${API_ENDPOINT}${searchTerm}`);
+  const [searchTerm, setSearchTerm] = useStorageState(
+      'search', '');
+  const [url, setUrl] = React.useState(
+      `${API_ENDPOINT}${searchTerm}`);
   const [stories, dispatchStories] = React.useReducer(storiesReducer,
       {data: [], isLoading: false, isError: false}
   );
 
-  const handleFetchStories = React.useCallback(() => {
-    if (!searchTerm) {
-      return;
-    }
+  const handleFetchStories = React.useCallback(async () => {
+    try {
+      const result = await axios.get(url);
 
-    dispatchStories({type: 'STORIES_FETCH_INIT'});
-
-    fetch(url)
-    .then((response) => response.json())
-    .then((result) => {
       dispatchStories({
         type: 'STORIES_FETCH_SUCCESS',
-        payload: result.hits,
+        payload: result.data.hits,
       });
-    }).catch(() => dispatchStories({type: 'STORIES_FETCH_FAILURE'}));
+    } catch {
+      dispatchStories({type: 'STORIES_FETCH_FAILURE'});
+    }
   }, [url]);
 
   React.useEffect(() => {
@@ -87,25 +86,18 @@ const App = () => {
   const handleSearchInput = (event) => {
     setSearchTerm(event.target.value);
   };
-  const handleSearchSubmit = () => {
+  const handleSearchSubmit = (event) => {
     setUrl(`${API_ENDPOINT}${searchTerm}`);
+    event.preventDefault();
   };
 
   return (
       <>
-        <div><InputWithLabel id="search"
-                             type="text"
-                             search={searchTerm}
-                             isFocused={false}
-                             onInputChange={handleSearchInput}>
-          Search:
-        </InputWithLabel>
-          <button type="button"
-                  onClick={handleSearchSubmit}
-                  disabled={!searchTerm}>
-            Go
-          </button>
-        </div>
+        <SearchForm
+            searchTerm={searchTerm}
+            onSearchInput={handleSearchInput}
+            onSearchSubmit={handleSearchSubmit}>
+        </SearchForm>
 
         <div>
           {stories.isError && <p>Something went wrong</p>}
@@ -121,6 +113,30 @@ const App = () => {
       </>
   );
 }
+const SearchForm = ({
+  searchTerm,
+  onSearchInput,
+  onSearchSubmit}) => (
+
+<div>
+  <h1>My Hacker Stories</h1>
+
+  <form onSubmit={onSearchSubmit}>
+    <InputWithLabel id="search"
+                    type="text"
+                    search={searchTerm}
+                    isFocused={false}
+                    onInputChange={onSearchInput}>
+      Search:
+    </InputWithLabel>
+    <button type="submit"
+            disabled={!searchTerm}>
+      Go
+    </button>
+  </form>
+</div>
+)
+;
 
 const InputWithLabel = ({
   id,
@@ -135,7 +151,11 @@ const InputWithLabel = ({
       <div>
         <label htmlFor={id}>{children}</label>
         &nbsp;
-        <input autoFocus={isFocused} id={id} type={type} value={searchTerm} onChange={onInputChange}/>
+        <input autoFocus={isFocused}
+               id={id}
+               type={type}
+               value={searchTerm}
+               onChange={onInputChange}/>
       </div>
   );
 }
@@ -163,6 +183,11 @@ const Item = ({item, onRemoveItem}) => (
       </span>
     </li>
 );
+SearchForm.propTypes = {
+  searchTerm: PropTypes.string,
+  onSearchInput: PropTypes.func,
+  onSearchSubmit: PropTypes.func
+}
 
 InputWithLabel.propTypes = {
   id: PropTypes.string,
